@@ -1,0 +1,36 @@
+Source: ruby-uglifier
+Section: ruby
+Priority: optional
+Maintainer: Debian Ruby Extras Maintainers <pkg-ruby-extras-maintainers@lists.alioth.debian.org>
+Uploaders: Antonio Terceiro <terceiro@debian.org>
+Build-Depends: debhelper (>= 9~),
+               gem2deb,
+               rake,
+               ruby-execjs (>= 0.3.0),
+               ruby-json (>= 1.8.0),
+               ruby-rspec,
+               ruby-source-map,
+               libjs-source-map,
+               libjs-uglify,
+               ruby-yajl
+Standards-Version: 3.9.8
+Vcs-Git: https://anonscm.debian.org/git/pkg-ruby-extras/ruby-uglifier.git
+Vcs-Browser: https://anonscm.debian.org/cgit/pkg-ruby-extras/ruby-uglifier.git
+Homepage: http://github.com/lautis/uglifier
+Testsuite: autopkgtest-pkg-ruby
+XS-Ruby-Versions: all
+
+Package: ruby-uglifier
+Architecture: all
+XB-Ruby-Versions: ${ruby:Versions}
+Depends: ruby | ruby-interpreter,
+         ruby-execjs (>= 0.3.0),
+         ruby-json (>= 1.8.0),
+         libjs-source-map,
+         libjs-uglify,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: Ruby wrapper for UglifyJS JavaScript compressor
+ ruby-uglifier is a wrapper for the UglifyJS JavaScript compressor, which is
+ used by other packages (e.g., the Rails 3 and 4 asset pipelines) to compress
+ Javascript files.

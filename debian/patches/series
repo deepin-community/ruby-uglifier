@@ -1,0 +1,4 @@
+0001-Use-packaged-UglifyJS-and-Source-Map.patch
+0002-Adjust-tests-to-lib-uglify.js-being-dropped.patch
+0003-Mark-test-as-pending.patch
+0004-Adapt-test-to-UglifyJS-2.7.patch

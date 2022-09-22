@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+export GEM2DEB_TEST_RUNNER = --check-dependencies
+
+%:
+	dh $@ --buildsystem=ruby --with ruby
+
+override_dh_auto_install:
+	dh_auto_install
+	mkdir -p debian/ruby-uglifier/usr/share/javascript/ruby-uglifier/
+	mv debian/ruby-uglifier/usr/lib/ruby/vendor_ruby/es5.js debian/ruby-uglifier/usr/share/javascript/ruby-uglifier/
+	mv debian/ruby-uglifier/usr/lib/ruby/vendor_ruby/split.js debian/ruby-uglifier/usr/share/javascript/ruby-uglifier/

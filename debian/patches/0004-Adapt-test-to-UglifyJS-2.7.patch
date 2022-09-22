@@ -1,0 +1,23 @@
+From: Antonio Terceiro <terceiro@debian.org>
+Date: Tue, 13 Dec 2016 18:13:07 -0200
+Subject: Adapt test to UglifyJS 2.7
+
+The same changes was made upstream at
+https://github.com/lautis/uglifier/commit/f676b66f1d35653f81b9645508c30053b680a64b
+---
+ spec/uglifier_spec.rb | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/spec/uglifier_spec.rb b/spec/uglifier_spec.rb
+index 34f3332..44c9854 100644
+--- a/spec/uglifier_spec.rb
++++ b/spec/uglifier_spec.rb
+@@ -19,7 +19,7 @@ describe "Uglifier" do
+   end
+ 
+   it "doesn't omit null character in strings" do
+-    expect(Uglifier.new.compile('var foo="\0bar"')).to include("\\x00bar")
++    expect(Uglifier.new.compile('var foo="\0bar"')).to include("\\0bar")
+   end
+ 
+   it "adds trailing semicolon to minified source" do

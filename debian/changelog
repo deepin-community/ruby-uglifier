@@ -1,0 +1,104 @@
+ruby-uglifier (2.7.2+dfsg-2) unstable; urgency=medium
+
+  * 0004-Adapt-test-to-UglifyJS-2.7.patch: fix test that was invalidated when
+    libjs-uglify was upgraded to version 2.7 (Closes: #846738)
+
+ -- Antonio Terceiro <terceiro@debian.org>  Tue, 13 Dec 2016 18:14:36 -0200
+
+ruby-uglifier (2.7.2+dfsg-1) unstable; urgency=medium
+
+  * Team upload
+
+  [ Cédric Boutillier ]
+  * Bump debhelper compatibility level to 9
+  * Remove version in the gem2deb build-dependency
+  * Use https:// in Vcs-* fields
+  * Bump Standards-Version to 3.9.7 (no changes needed)
+  * Run wrap-and-sort on packaging files
+
+  [ Antonio Terceiro ]
+  * Use UglifyJS source from libjs-uglify (Closes: #718367)
+    - drop lib/uglify.js from upstream tarball
+    - Use libjs-uglify
+    - This brings a small regression: the embedded copy of UglifyJS was
+      version 2.7.0, while the one provided by libjs-uglify is 2.4.15. This
+      makes one automated test fail during the build, related to using input
+      source maps. This test has been marked as pending for now, and this
+      functionality will not work until UglifyJS is not upgraded.
+  * Refresh pacakging with a new `dh-make-ruby -w` run
+
+ -- Antonio Terceiro <terceiro@debian.org>  Wed, 10 Aug 2016 11:35:54 -0300
+
+ruby-uglifier (2.7.2-1) unstable; urgency=medium
+
+  * New upstream release
+    - contains fix to don't attempt to negate non-boolean AST_Binary (see
+      https://github.com/mishoo/UglifyJS2/issues/751) by upgrading to UglifyJ
+      2.4.24
+
+ -- Antonio Terceiro <terceiro@debian.org>  Wed, 26 Aug 2015 17:36:30 -0300
+
+ruby-uglifier (2.7.1-2) unstable; urgency=medium
+
+  * Team upload.
+  * Re-upload to unstable. 
+
+ -- Pirate Praveen <praveen@debian.org>  Wed, 29 Apr 2015 18:52:16 +0530
+
+ruby-uglifier (2.7.1-1) experimental; urgency=low
+
+  * Team upload
+  * New upstream release
+  * Bump standards version to 3.9.6 (no changes)
+  * Refresh patches
+  * Add short name lib/uglify.js BSD-3-Clause in copyright
+
+ -- Pirate Praveen <praveen@debian.org>  Fri, 03 Apr 2015 16:53:25 +0530
+
+ruby-uglifier (2.5.3-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream version 2.5.3
+  * Updated description
+
+ -- Caitlin Matos <caitlin.matos@zoho.com>  Mon, 11 Aug 2014 20:35:02 -0400
+
+ruby-uglifier (2.5.0-2) unstable; urgency=medium
+
+  * Depend on ruby-json instead of ruby-multi-json (Closes: #751771)
+
+ -- Antonio Terceiro <terceiro@debian.org>  Mon, 16 Jun 2014 12:42:24 -0300
+
+ruby-uglifier (2.5.0-1) unstable; urgency=low
+
+  * Team upload
+  * New upstream release
+  * Refresh patches
+  * Add ruby-source-map to build deps
+
+ -- Pirate Praveen <praveen@debian.org>  Tue, 20 May 2014 13:42:11 +0530
+
+ruby-uglifier (1.3.0-1) unstable; urgency=medium
+
+  * New upstream release
+  * debian/patches/run-tests-against-distributed-javascript.patch: dropped,
+    already applied upstream
+  * Bump Standards-Version to 3.9.5; no changes needed
+  * debian/copyright: fix typo
+
+ -- Antonio Terceiro <terceiro@debian.org>  Fri, 03 Jan 2014 00:51:23 -0300
+
+ruby-uglifier (1.2.5-2) unstable; urgency=low
+
+  * When running tests, use the local JavaScript files instead of the ones
+    that would be installed to /usr/share when the package is installed
+    (Closes: #680835).
+  * Add ruby-yajl to Build-Depends:
+
+ -- Antonio Terceiro <terceiro@debian.org>  Fri, 13 Jul 2012 08:48:14 -0300
+
+ruby-uglifier (1.2.5-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Antonio Terceiro <terceiro@debian.org>  Wed, 27 Jun 2012 21:45:08 -0300

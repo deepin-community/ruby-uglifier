@@ -1,0 +1,21 @@
+From: Antonio Terceiro <terceiro@debian.org>
+Date: Sun, 7 Aug 2016 20:28:59 -0300
+Subject: Mark test as pending
+
+This patch is Debian-specific
+---
+ spec/source_map_spec.rb | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/spec/source_map_spec.rb b/spec/source_map_spec.rb
+index 8803db7..9cd9880 100644
+--- a/spec/source_map_spec.rb
++++ b/spec/source_map_spec.rb
+@@ -57,6 +57,7 @@ describe "Uglifier" do
+   end
+ 
+   it "should be able to handle an input source map" do
++    pending "Needs UglifyJS >= 2.5 to work"
+     source = <<-JS
+       function hello () {
+         function world () {

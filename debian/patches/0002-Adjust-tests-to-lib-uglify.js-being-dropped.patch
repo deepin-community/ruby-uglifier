@@ -1,0 +1,36 @@
+From: Antonio Terceiro <terceiro@debian.org>
+Date: Sun, 7 Aug 2016 18:08:12 -0300
+Subject: Adjust tests to lib/uglify.js being dropped
+
+This patch is Debian-specific
+---
+ spec/source_map_spec.rb | 2 +-
+ spec/uglifier_spec.rb   | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/spec/source_map_spec.rb b/spec/source_map_spec.rb
+index bf2aebf..8803db7 100644
+--- a/spec/source_map_spec.rb
++++ b/spec/source_map_spec.rb
+@@ -16,7 +16,7 @@ describe "Uglifier" do
+   end
+ 
+   it "generates source maps" do
+-    source = File.open("lib/uglify.js", "r:UTF-8").read
++    source = File.open("/usr/share/javascript/source-map/source-map.js", "r:UTF-8").read
+     minified, map = Uglifier.new.compile_with_map(source)
+     expect(minified.length).to be < source.length
+     expect(map.length).to be > 0
+diff --git a/spec/uglifier_spec.rb b/spec/uglifier_spec.rb
+index 9304d35..34f3332 100644
+--- a/spec/uglifier_spec.rb
++++ b/spec/uglifier_spec.rb
+@@ -4,7 +4,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
+ 
+ describe "Uglifier" do
+   it "minifies JS" do
+-    source = File.open("lib/uglify.js", "r:UTF-8").read
++    source = File.open("/usr/share/javascript/source-map/source-map.js", "r:UTF-8").read
+     minified = Uglifier.new.compile(source)
+     expect(minified.length).to be < source.length
+     expect { Uglifier.new.compile(minified) }.not_to raise_error

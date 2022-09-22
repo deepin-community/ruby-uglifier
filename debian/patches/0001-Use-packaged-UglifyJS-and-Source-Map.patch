@@ -1,0 +1,60 @@
+From: Antonio Terceiro <terceiro@debian.org>
+Date: Sun, 7 Aug 2016 10:50:20 -0300
+Subject: Use packaged UglifyJS (and Source-Map)
+
+This patch is Debian-specific
+---
+ lib/uglifier.rb | 30 ++++++++++++++++++++++++------
+ 1 file changed, 24 insertions(+), 6 deletions(-)
+
+diff --git a/lib/uglifier.rb b/lib/uglifier.rb
+index a2b9671..7e3d7db 100644
+--- a/lib/uglifier.rb
++++ b/lib/uglifier.rb
+@@ -74,12 +74,21 @@ class Uglifier
+     })
+   JS
+ 
++  def self.find_asset(filename)
++    [
++          File.expand_path("../" + filename, __FILE__),
++          File.join("/usr/share/javascript/ruby-uglifier", filename)
++    ].find { |f| File.exists?(f) }
++  end
++
++  # SourceMap path
++  SourceMapPath = "/usr/share/javascript/source-map/source-map.js"
+   # UglifyJS source path
+-  SourcePath = File.expand_path("../uglify.js", __FILE__)
++  SourcePath = "/usr/share/javascript/uglifyjs/uglify.js"
+   # ES5 shims source path
+-  ES5FallbackPath = File.expand_path("../es5.js", __FILE__)
++  ES5FallbackPath = find_asset("es5.js")
+   # String.split shim source path
+-  SplitFallbackPath = File.expand_path("../split.js", __FILE__)
++  SplitFallbackPath = find_asset("split.js")
+ 
+   # Default options for compilation
+   DEFAULTS = {
+@@ -191,9 +200,18 @@ class Uglifier
+   private
+ 
+   def uglifyjs_source
+-    [ES5FallbackPath, SplitFallbackPath, SourcePath].map do |file|
+-      File.open(file, "r:UTF-8") { |f| f.read }
+-    end.join("\n")
++    [
++      __read__(ES5FallbackPath),
++      __read__(SplitFallbackPath),
++      'window = this;',
++      __read__(SourceMapPath),
++      "MOZ_SourceMap = sourceMap;",
++      __read__(SourcePath),
++    ].join("\n")
++  end
++
++  def __read__(file)
++    File.open(file, "r:UTF-8") { |f| f.read }
+   end
+ 
+   # Run UglifyJS for given source code
