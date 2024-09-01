@@ -1,7 +1,7 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: uglifier
 Source: https://github.com/lautis/uglifier
-Files-Excluded: lib/uglify.js
+Files-Excluded: lib/uglify.js lib/uglify-harmony.js
 
 Files: *
 Copyright: Ville Lautanala, Flowdock (https://flowdock.com/)

@@ -1,13 +1,29 @@
 # encoding: UTF-8
+
 require 'stringio'
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "Uglifier" do
   it "minifies JS" do
-    source = File.open("lib/uglify.js", "r:UTF-8").read
+    source = File.open("lib/uglify.js", "r:UTF-8", &:read)
     minified = Uglifier.new.compile(source)
     expect(minified.length).to be < source.length
-    expect { Uglifier.new.compile(minified) }.not_to raise_error
+    expect { ExecJS.compile(minified) }.not_to raise_error
+  end
+
+  describe 'harmony mode' do
+    let(:source) { "const foo = () => bar();" }
+
+    it "minifies JS with Harmony features when harmony option is on" do
+      minified = Uglifier.new(:harmony => true, :compress => false).compile(source)
+      expect(minified.length).to be < source.length
+    end
+
+    it "raises an error when minifying JS with Harmony without harmony option" do
+      source = "for (var value of array) { doSomething(value) }"
+      expect { Uglifier.new(:compress => false).compile(source) }
+        .to raise_error(Uglifier::Error, /harmony/)
+    end
   end
 
   it "throws an exception when compilation fails" do
@@ -19,7 +35,7 @@ describe "Uglifier" do
   end
 
   it "doesn't omit null character in strings" do
-    expect(Uglifier.new.compile('var foo="\0bar"')).to include("\\x00bar")
+    expect(Uglifier.new.compile('var foo="\0bar"')).to include("\\0bar")
   end
 
   it "adds trailing semicolon to minified source" do
@@ -27,36 +43,83 @@ describe "Uglifier" do
     expect(Uglifier.new.compile(source)[-1]).to eql(";"[0])
   end
 
+  describe "property name mangling" do
+    let(:source) do
+      <<-JS
+        var obj = {
+          _hidden: false,
+          "quoted": 'value'
+        };
+
+        alert(object.quoted);
+      JS
+    end
+
+    it "does not mangle property names by default" do
+      expect(Uglifier.compile(source)).to include("object.quoted")
+    end
+
+    it "can be configured to mangle properties" do
+      expect(Uglifier.compile(source, :mangle => { :properties => true }))
+        .not_to include("object.quoted")
+    end
+
+    it "can be configured using old mangle_properties" do
+      expect(Uglifier.compile(source, :mangle_properties => true))
+        .not_to include("object.quoted")
+    end
+
+    it "can configure a regex for mangling" do
+      expect(Uglifier.compile(source, :mangle => { :properties => { :regex => /^_/ } }))
+        .to include("object.quoted")
+    end
+
+    it "can be configured to keep quoted properties" do
+      expect(Uglifier.compile(source, :mangle => { :properties => { :keep_quoted => true } }))
+        .to include("object.quoted")
+    end
+
+    it "can be configured to include debug in mangled properties" do
+      expect(Uglifier.compile(source, :mangle => { :properties => { :debug => true } }))
+        .to include("_$quoted$_")
+    end
+  end
+
   describe "argument name mangling" do
+    let(:code) { "function bar(foo) {return foo + 'bar'};" }
+
     it "doesn't try to mangle $super by default to avoid breaking PrototypeJS" do
       expect(Uglifier.compile('function foo($super) {return $super}')).to include("$super")
     end
 
     it "allows variables to be excluded from mangling" do
-      code = "function bar(foo) {return foo + 'bar'};"
-      expect(Uglifier.compile(code, :mangle => { :except => ["foo"] })).to include("(foo)")
+      expect(Uglifier.compile(code, :mangle => { :reserved => ["foo"] }))
+        .to include("(foo)")
     end
 
     it "skips mangling when set to false" do
-      code = "function bar(foo) {return foo + 'bar'};"
       expect(Uglifier.compile(code, :mangle => false)).to include("(foo)")
     end
 
-    it "mangles argumen names by default" do
-      code = "function bar(foo) {return foo + 'bar'};"
-      expect(Uglifier.compile(code, :mangle => true)).not_to include("(foo)")
+    it "mangles argument names by default" do
+      expect(Uglifier.compile(code)).not_to include("(foo)")
     end
 
     it "mangles top-level names when explicitly instructed" do
-      code = "function bar(foo) {return foo + 'bar'};"
-      expect(Uglifier.compile(code, :mangle => { :toplevel => false })).to include("bar(")
-      expect(Uglifier.compile(code, :mangle => { :toplevel => true })).not_to include("bar(")
+      expect(Uglifier.compile(code, :mangle => { :toplevel => false }))
+        .to include("bar(")
+      expect(Uglifier.compile(code, :mangle => { :toplevel => true }))
+        .not_to include("bar(")
+    end
+
+    it "can be controlled with mangle option" do
+      expect(Uglifier.compile(code, :mangle => false)).to include("(foo)")
     end
   end
 
   describe "comment preservation" do
     let(:source) do
-      <<-EOS
+      <<-JS
         /* @preserve Copyright Notice */
         /* (c) 2011 */
         // INCLUDED
@@ -65,13 +128,8 @@ describe "Uglifier" do
         /* Another Copyright */
         /*! Another Bang */
         // A comment!
-        function add(a, b) { return a + b; }
-      EOS
-    end
-
-    it "handles copyright option" do
-      compiled = Uglifier.compile(source, :copyright => false)
-      expect(compiled).not_to match(/Copyright/)
+        function add(a, b) { return a + b; }
+      JS
     end
 
     describe ":copyright" do
@@ -118,8 +176,8 @@ describe "Uglifier" do
       subject { Uglifier.compile(source, :comments => :none) }
 
       it "omits all comments" do
-        expect(subject).not_to match %r{//}
-        expect(subject).not_to match(/\/\*/)
+        expect(subject).not_to match(%r{//})
+        expect(subject).not_to match(%r{/\*})
       end
     end
 
@@ -136,13 +194,6 @@ describe "Uglifier" do
     end
   end
 
-  it "squeezes code only if squeeze is set to true" do
-    code = "function a(a){if(a) { return 0; } else { return 1; }}"
-    minified = Uglifier.compile(code, :squeeze => false)
-    squeezed = Uglifier.compile(code, :squeeze => true)
-    expect(minified.length).to be > squeezed.length
-  end
-
   it "honors max line length" do
     code = "var foo = 123;function bar() { return foo; }"
     uglifier = Uglifier.new(:output => { :max_line_len => 20 }, :compress => false)
@@ -150,15 +201,107 @@ describe "Uglifier" do
   end
 
   it "hoists vars to top of the scope" do
-    code = "function something() { var a = 1; a = 2; var b = 3; return a + b;}"
+    code = <<-JS
+      function f() {
+        var a = 1;
+        var b = 2;
+        var c = 3;
+        function g() {}
+        return g(a, b, c);
+      }
+    JS
     minified = Uglifier.compile(code, :compress => { :hoist_vars => true })
-    expect(minified).to match(/var \w,\w/)
+    expect(minified).to match(/var \w=\d+,\w=\d+/)
   end
 
-  it "forwards screw_ie8 option to UglifyJS" do
-    code = "function something() { return g['switch']; }"
-    expect(Uglifier.compile(code, :mangle => false, :screw_ie8 => true)).to match(/g\.switch/)
-    expect(Uglifier.compile(code, :compress => false, :screw_ie8 => true)).to match(/g\.switch/)
+  describe 'reduce_funcs' do
+    let(:code) do
+      <<-JS
+        var foo = function(x, y, z) {
+          return x < y ? x * y + z : x * z - y;
+        }
+        var indirect = function(x, y, z) {
+          return foo(x, y, z);
+        }
+        var sum = 0;
+        for (var i = 0; i < 100; ++i)
+          sum += indirect(i, i + 1, 3 * i);
+        console.log(sum);
+      JS
+    end
+
+    it 'inlines function declaration' do
+      minified = Uglifier.compile(
+        code,
+        :mangle => false,
+        :compress => {
+          :reduce_funcs => true,
+          :reduce_vars => true,
+          :toplevel => true,
+          :unused => true
+        }
+      )
+      expect(minified).not_to include("foo(")
+    end
+
+    it 'defaults to not inlining function declarations' do
+      minified = Uglifier.compile(
+        code,
+        :mangle => false,
+        :compress => {
+          :reduce_funcs => false,
+          :reduce_vars => true,
+          :toplevel => true,
+          :unused => true
+        }
+      )
+      expect(minified).to include("foo(")
+    end
+  end
+
+  describe 'reduce_vars' do
+    let(:code) do
+      <<-JS
+        var a = 2;
+        (function () {
+          console.log(a - 5);
+          console.log(a - 1);
+        })();
+      JS
+    end
+
+    it "reduces vars when compress option is set" do
+      minified = Uglifier.compile(code, :compress => { :reduce_vars => true, :toplevel => true })
+      expect(minified).to include("console.log(-3)")
+    end
+
+    it "does not reduce vars when compress option is false" do
+      minified = Uglifier.compile(code, :compress => { :reduce_vars => false, :toplevel => true })
+      expect(minified).to match(/console.log\(\w+-5\)/)
+    end
+
+    it "defaults to variable reducing being disabled" do
+      expect(Uglifier.compile(code))
+        .to eq(Uglifier.compile(code, :compress => { :reduce_vars => false, :toplevel => true }))
+    end
+
+    it "does not reduce variables that are assigned to" do
+      options = { :mangle => false, :compress => { :reduce_vars => true } }
+      expect(Uglifier.compile(code + "a=3", options)).to match(/console.log\(\w+-5\)/)
+    end
+  end
+
+  describe "ie8 option" do
+    let(:code) { "function something() { return g.switch; }" }
+
+    it "defaults to IE8-safe output" do
+      expect(Uglifier.compile(code)).to match("\"switch\"")
+    end
+
+    it "forwards ie8 option to UglifyJS" do
+      expect(Uglifier.compile(code, :mangle => false, :ie8 => false)).to match(/g\.switch/)
+      expect(Uglifier.compile(code, :compress => false, :ie8 => false)).to match(/g\.switch/)
+    end
   end
 
   it "can be configured to output only ASCII" do
@@ -199,7 +342,7 @@ describe "Uglifier" do
   end
 
   it "can disable IIFE negation" do
-    code = "(function() { console.log('test')})();"
+    code = "(function(value) { console.log(value)})(value);"
     disabled_negation = Uglifier.compile(code, :compress => { :negate_iife => false })
     expect(disabled_negation).not_to include("!")
     negation = Uglifier.compile(code, :compress => { :negate_iife => true })
@@ -212,24 +355,36 @@ describe "Uglifier" do
     expect(compiled).not_to include("console")
   end
 
-  it "processes @ngInject annotations" do
-    code = <<-EOF
-    /**
-     * @ngInject
-     */
-    var f = function(foo, bar) { return foo + bar};
-    EOF
-    with_angular = Uglifier.compile(code, :compress => { :angular => true })
-    without_angular = Uglifier.compile(code, :compress => { :angular => false })
-    expect(with_angular).to include("f.$inject")
-    expect(without_angular).not_to include("f.$inject")
+  describe "collapse_vars option" do
+    let(:code) do
+      <<-JS
+        function a() {
+          var win = window;
+          return win.Handlebars;
+        }
+      JS
+    end
+
+    it "collapses vars when collapse_vars is enabled" do
+      compiled = Uglifier.compile(code, :compress => { :collapse_vars => true })
+      expect(compiled).to include("return window.Handlebars")
+    end
+
+    it "does not collapse variables when disable" do
+      compiled = Uglifier.compile(code, :compress => { :collapse_vars => false })
+      expect(compiled).not_to include("return window.Handlebars")
+    end
+
+    it "defaults to not collapsing variables" do
+      expect(Uglifier.compile(code)).to include("return window.Handlebars")
+    end
   end
 
   it "keeps unused function arguments when keep_fargs option is set" do
-    code = <<-EOF
+    code = <<-JS
     function plus(a, b, c) { return a + b};
     plus(1, 2);
-    EOF
+    JS
 
     options = lambda do |keep_fargs|
       {
@@ -245,6 +400,38 @@ describe "Uglifier" do
     expect(Uglifier.compile(code, options.call(true))).to include("c)")
   end
 
+  describe 'keep_fnames' do
+    let(:code) do
+      <<-JS
+      (function() {
+        function plus(a, b) { return a + b; };
+        plus(1, 2);
+      })();
+      JS
+    end
+
+    it "keeps function names in output when compressor keep_fnames is set" do
+      expect(Uglifier.compile(code, :compress => true)).not_to include("plus")
+
+      keep_fnames = Uglifier.compile(code, :mangle => false, :compress => { :keep_fnames => true })
+      expect(keep_fnames).to include("plus")
+    end
+
+    it "does not mangle function names in output when mangler keep_fnames is set" do
+      expect(Uglifier.compile(code, :mangle => true)).not_to include("plus")
+
+      keep_fnames = Uglifier.compile(code, :mangle => { :keep_fnames => true })
+      expect(keep_fnames).to include("plus")
+    end
+
+    it "sets sets both compress and mangle keep_fnames when toplevel keep_fnames is true" do
+      expect(Uglifier.compile(code)).not_to include("plus")
+
+      keep_fnames = Uglifier.compile(code, :keep_fnames => true)
+      expect(keep_fnames).to include("plus")
+    end
+  end
+
   describe "Input Formats" do
     let(:code) { "function hello() { return 'hello world'; }" }
 
@@ -257,24 +444,328 @@ describe "Uglifier" do
     end
   end
 
-  describe "enclose" do
-    let(:code) { "$.foo()" }
-
-    it "encloses code with given arguments" do
-      minified = Uglifier.compile(code, :enclose => { 'window.jQuery' => '$' })
-      expect(minified).to match(/window.jQuery/)
+  describe "wrap_iife option" do
+    let(:code) do
+      <<-JS
+        (function(value) {
+          return function() {
+            console.log(value)
+          };
+        })(1)();
+      JS
     end
 
-    it "handles multiple definitions" do
-      definitions = [%w(lol lulz), %w(foo bar)]
-      minified = Uglifier.compile(code, :enclose => definitions)
-      expect(minified).to match(/lol,foo/)
-      expect(minified).to match(/lulz,bar/)
+    it "defaults to not wrap IIFEs" do
+      expect(Uglifier.compile(code))
+        .to match("!function(n){return function(){console.log(n)}}(1)();")
     end
 
-    it "wraps with function when given empty object" do
-      minified = Uglifier.compile(code, :enclose => {})
-      expect(minified).to match(/function\(/)
+    it "wraps IIFEs" do
+      expect(Uglifier.compile(code, :output => { :wrap_iife => true }))
+        .to match("(function(n){return function(){console.log(n)}})(1)();")
+    end
+  end
+
+  describe 'removing unused top-level functions and variables' do
+    let(:code) do
+      <<-JS
+        var a, b = 1, c = g;
+        function f(d) {
+          return function() {
+            c = 2;
+          }
+        }
+        a = 2;
+        function g() {}
+        function h() {}
+        console.log(b = 3);
+      JS
+    end
+
+    it 'removes unused top-level functions and variables when toplevel is set' do
+      compiled = Uglifier.compile(
+        code,
+        :mangle => false,
+        :compress => { :toplevel => true }
+      )
+      expect(compiled).not_to include("function h()")
+      expect(compiled).not_to include("var a")
+    end
+
+    it 'does not unused top-level functions and variables by default' do
+      expect(Uglifier.compile(code, :mangle => false))
+        .to include("var a").and(include("function h()"))
+    end
+
+    it 'keeps variables specified in top_retain' do
+      compiled = Uglifier.compile(
+        code,
+        :mangle => false,
+        :compress => { :toplevel => true, :top_retain => %w(a h) }
+      )
+      expect(compiled).to include("var a").and(include("function h()"))
+      expect(compiled).not_to include("function g")
+    end
+  end
+
+  describe 'unsafe_comps' do
+    let(:code) do
+      <<-JS
+        var obj1, obj2;
+        obj1 <= obj2 ? f1() : g1();
+      JS
+    end
+
+    let(:options) do
+      {
+        :comparisons => true,
+        :conditionals => true,
+        :reduce_vars => false,
+        :collapse_vars => false
+      }
+    end
+
+    it 'keeps unsafe comparisons by default' do
+      compiled = Uglifier.compile(code, :mangle => false, :compress => options)
+      expect(compiled).to include("obj1<=obj2")
+    end
+
+    it 'optimises unsafe comparisons when unsafe_comps is enabled' do
+      compiled = Uglifier.compile(
+        code,
+        :mangle => false,
+        :compress => options.merge(:unsafe_comps => true)
+      )
+      expect(compiled).to include("obj2<obj1")
+    end
+  end
+
+  describe 'unsafe_math' do
+    let(:code) do
+      <<-JS
+        function compute(x) { return 2 * x * 3; }
+      JS
+    end
+
+    it 'keeps unsafe math by default' do
+      compiled = Uglifier.compile(code, :mangle => false)
+      expect(compiled).to include('2*x*3')
+    end
+
+    it 'optimises unsafe math when unsafe_math is enabled' do
+      compiled = Uglifier.compile(
+        code,
+        :mangle => false,
+        :compress => { :unsafe_math => true }
+      )
+      expect(compiled).to include("6*x")
+    end
+  end
+
+  describe 'unsafe_proto' do
+    let(:code) do
+      <<-JS
+        Array.prototype.slice.call([1,2,3], 1)
+      JS
+    end
+
+    it 'keeps unsafe prototype references by default' do
+      compiled = Uglifier.compile(code)
+      expect(compiled).to include("Array.prototype.slice.call")
+    end
+
+    it 'optimises unsafe comparisons when unsafe_comps is enabled' do
+      compiled = Uglifier.compile(code, :compress => { :unsafe_proto => true })
+      expect(compiled).to include("[].slice.call")
+    end
+  end
+
+  it 'forwards passes option to compressor' do
+    code = File.open("lib/uglify.js", "r:UTF-8", &:read)
+    one_pass = Uglifier.compile(code, :mangle => false, :compress => { :passes => 1 })
+    two_pass = Uglifier.compile(code, :mangle => false, :compress => { :passes => 2 })
+    expect(two_pass.length).to be < one_pass.length
+  end
+
+  describe 'shebang' do
+    let(:shebang) { '#!/usr/bin/env node' }
+    let(:code) { "#{shebang}\nconsole.log('Hello world!')" }
+
+    it 'is not removed by default' do
+      compiled = Uglifier.compile(code)
+      expect(compiled).to include("#!")
+    end
+
+    it 'is removed when shebang option is set to false' do
+      compiled = Uglifier.compile(code, :output => { :shebang => false })
+      expect(compiled).not_to include("#!")
+    end
+  end
+
+  describe 'keep_infinity' do
+    let(:code) do
+      <<-JS
+        function fun() { return (123456789 / 0).toString(); }
+      JS
+    end
+
+    it 'compresses Infinity by default' do
+      compiled = Uglifier.compile(code, :compress => {
+                                    :evaluate => true,
+                                    :keep_infinity => false
+                                  })
+      expect(compiled).not_to include("Infinity")
+    end
+
+    it 'can be enabled to preserve Infinity' do
+      compiled = Uglifier.compile(code, :compress => {
+                                    :evaluate => true,
+                                    :keep_infinity => true
+                                  })
+      expect(compiled).to include("Infinity")
+    end
+  end
+
+  describe 'quote style' do
+    let(:code) do
+      <<-JS
+        function fun() { return "foo \\\"bar\\\""; }
+      JS
+    end
+
+    it 'defaults to auto' do
+      compiled = Uglifier.compile(code)
+      expect(compiled).to include("'foo \"bar\"'")
+    end
+
+    it 'can use numbers for configuration' do
+      compiled = Uglifier.compile(code, :output => { :quote_style => 2 })
+      expect(compiled).to include("\"foo \\\"bar\\\"\"")
+    end
+
+    it 'uses single quotes when single' do
+      compiled = Uglifier.compile(code, :output => { :quote_style => :single })
+      expect(compiled).to include("'foo \"bar\"'")
+    end
+
+    it 'uses double quotes when single' do
+      compiled = Uglifier.compile(code, :output => { :quote_style => :double })
+      expect(compiled).to include("\"foo \\\"bar\\\"\"")
+    end
+
+    it 'preserves original quoting when original' do
+      compiled = Uglifier.compile(code, :output => { :quote_style => :original })
+      expect(compiled).to include("\"foo \\\"bar\\\"\"")
+    end
+  end
+
+  describe 'keep quoted props' do
+    let(:code) do
+      <<-JS
+        function fun() { return {"foo": "bar"}; }
+      JS
+    end
+
+    it 'defaults to not keeping quotes' do
+      compiled = Uglifier.compile(code)
+      expect(compiled).not_to include('"foo"')
+    end
+
+    it 'keeps properties when set to true' do
+      compiled = Uglifier.compile(code, :output => { :keep_quoted_props => true })
+      expect(compiled).to include('"foo"')
+    end
+  end
+
+  describe 'side_effects' do
+    let(:code) do
+      <<-JS
+        function fun() { /*@__PURE__*/foo(); }
+      JS
+    end
+
+    it 'defaults to dropping pure function calls' do
+      compiled = Uglifier.compile(code)
+      expect(compiled).not_to include('foo()')
+    end
+
+    it 'function call dropping can be disabled' do
+      compiled = Uglifier.compile(code, :compress => { :side_effects => false })
+      expect(compiled).to include('foo()')
+    end
+  end
+
+  describe 'switches' do
+    let(:code) do
+      <<-JS
+        function fun() {
+          switch (1) {
+            case 1: foo();
+            case 1+1:
+              bar();
+              break;
+            case 1+1+1: baz();
+          }
+        }
+      JS
+    end
+
+    it 'drops unreachable switch branches by default' do
+      compiled = Uglifier.compile(code)
+      expect(compiled).not_to include('baz()')
+    end
+
+    it 'branch dropping can be disabled' do
+      compiled = Uglifier.compile(code, :compress => { :switches => false })
+      expect(compiled).to include('baz()')
+    end
+  end
+
+  describe 'context_source_lines' do
+    let(:code) do
+      <<-JS
+        var foo = { //_1
+          // `foo.bar` should cause panic because with `harmony: false`
+          bar() { //_3
+            console.log('correct es5 syntax:',
+              js` //_5
+              var foo = {
+                bar: function() { //_7
+                  console.log('this is correct es5 syntax')
+                } //_9
+              }
+              ` //_11
+            );
+          }, //_13
+
+          // `foo.baz` ends with `;` which is a syntax error
+          baz: () => { //_16
+            console.log('foo.baz is incorrect');
+          }; //_18
+          //extra line
+        } //_20
+        // end
+      JS
+    end
+
+    it 'contains harmony error message and follows error_context_lines option' do
+      expect { Uglifier.compile(code, :harmony => false, :error_context_lines => 4) }
+        .to raise_error(Uglifier::Error, %r{
+          harmony\smode [^\n]+ Uglifier\.new  # harmony error mesage
+          .+ --\n [^\n]+ //_1\n               # 1 should be the first line
+          .+ => [^\n]+ bar \e\[\d+m \(\)      # should point to () at line 3
+          .+ //_7\n ==\z                      # 7 should be the last line
+        }xm)
+    end
+
+    it 'shows lines surrounded syntax error when harmony mode is on' do
+      expect { Uglifier.compile(code, :harmony => true, :error_context_lines => 2) }
+        .to raise_error(Uglifier::Error, %r{
+          Unexpect[^\n]+ ; [^\n]+expect [^\n]+ ,  # syntax error mesage
+          .+ --\n [^\n]+ //_16\n                  # 16 should be the first line
+          .+ => [^\n]+ \} \e\[\d+m ;              # should point to ; at line 18
+          .+ //_20\n ==\z                         # 20 should be the last line
+        }xm)
     end
   end
 end

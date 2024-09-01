@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
   spec.description = "Uglifier minifies JavaScript files by wrapping UglifyJS to be accessible in Ruby"
   spec.license = "MIT"
 
-  spec.required_ruby_version = '>= 1.8.7'
+  spec.required_ruby_version = '>= 1.9.3'
 
   spec.extra_rdoc_files = [
     "LICENSE.txt",
@@ -21,15 +21,15 @@ Gem::Specification.new do |spec|
     "CHANGELOG.md",
     "CONTRIBUTING.md"
   ]
-  spec.files = `git ls-files`.split($/)
-  spec.test_files = spec.files.grep(%r{^spec/})
+
+  spec.files = `git ls-files -z`.split("\x0").reject do |f|
+    f.match(%r{^(spec|vendor|gemfiles|patches)/})
+  end
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency "execjs", ">= 0.3.0"
-  spec.add_runtime_dependency "json", ">= 1.8.0"
+  spec.add_runtime_dependency "execjs", [">= 0.3.0", "< 3"]
   spec.add_development_dependency "rspec", "~> 3.0"
-  spec.add_development_dependency "rake", "~> 10.4"
-  spec.add_development_dependency "bundler", "~> 1.3"
-  spec.add_development_dependency "rdoc", ">= 3.11"
-  spec.add_development_dependency "source_map", ">= 0"
+  spec.add_development_dependency "rake", "~> 12.0"
+  spec.add_development_dependency "bundler", ">= 1.3"
+  spec.add_development_dependency "sourcemap", "~> 0.1.1"
 end

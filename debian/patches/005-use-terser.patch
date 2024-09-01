@@ -1,0 +1,103 @@
+lib/uglify-harmony.js is generated and not packaged in debian
+so use terser to replace it
+
+--- /dev/null
++++ b/lib/terser.js
+@@ -0,0 +1,49 @@
++// Set source-map.js sourceMap to uglify.js MOZ_SourceMap
++MOZ_SourceMap = sourceMap;
++
++function comments(option) {
++  if (Object.prototype.toString.call(option) === '[object Array]') {
++    return new RegExp(option[0], option[1]);
++  } else if (option == "jsdoc") {
++    return function(node, comment) {
++      if (comment.type == "comment2") {
++        return /@preserve|@license|@cc_on/i.test(comment.value);
++      } else {
++        return false;
++      }
++    };
++  } else {
++    return option;
++  }
++}
++
++function regexOption(options) {
++  if (typeof options === 'object' && options.regex) {
++    return new RegExp(options.regex[0], options.regex[1]);
++  } else {
++    return null;
++  }
++}
++
++function uglifier(options) {
++  var source = options.source;
++  options.output.comments = comments(options.output.comments);
++
++  if (options.mangle) {
++    if (options.mangle.properties) {
++      options.mangle.properties.regex = regexOption(options.mangle.properties);
++    }
++  }
++  delete options.source;
++
++
++  var inputFilename = '0'
++  if (options.sourceMap) {
++    inputFilename = options.sourceMap.input;
++    delete options.sourceMap.input;
++  }
++
++  var inputs = {};
++  inputs[inputFilename] = source;
++  return Terser.minify(inputs, options);
++}
+--- a/lib/uglifier.rb
++++ b/lib/uglifier.rb
+@@ -22,6 +22,8 @@
+   SplitFallbackPath = File.expand_path("../split.js", __FILE__)
+   # UglifyJS wrapper path
+   UglifyJSWrapperPath = File.expand_path("../uglifier.js", __FILE__)
++  # Terser wrapper path
++  TerserWrapperPath = File.expand_path("../terser.js", __FILE__)
+ 
+   # Default options for compilation
+   DEFAULTS = {
+@@ -32,9 +34,11 @@
+       :inline_script => false, # Escape occurrences of </script in strings
+       :quote_keys => false, # Quote keys in object literals
+       :max_line_len => 32 * 1024, # Maximum line length in minified code
+-      :bracketize => false, # Bracketize if, for, do, while or with statements, even if their body is a single statement
++      # terser does not support this option
++      #:bracketize => false, # Bracketize if, for, do, while or with statements, even if their body is a single statement
+       :semicolons => true, # Separate statements with semicolons
+-      :preserve_line => false, # Preserve line numbers in outputs
++      # terser does not support this option
++      #:preserve_line => false, # Preserve line numbers in outputs
+       :beautify => false, # Beautify output
+       :indent_level => 4, # Indent level in spaces
+       :indent_start => 0, # Starting indent level
+@@ -180,7 +184,7 @@
+ 
+   def context
+     @context ||= begin
+-      source = harmony? ? source_with(HarmonySourcePath) : source_with(SourcePath)
++      source = harmony? ? source_with_terser(HarmonySourcePath) : source_with(SourcePath)
+       ExecJS.compile(source)
+     end
+   end
+@@ -203,6 +207,13 @@
+       File.open(file, "r:UTF-8", &:read)
+     end.join("\n")
+   end
++
++  def source_with_terser(path)
++    [ES5FallbackPath, SplitFallbackPath, SourceMapPath, path,
++     TerserWrapperPath].map do |file|
++      File.open(file, "r:UTF-8", &:read)
++    end.join("\n")
++  end
+ 
+   # Run UglifyJS for given source code
+   def run_uglifyjs(input, generate_map)

@@ -1,3 +1,41 @@
+ruby-uglifier (4.2.0+dfsg-1) experimental; urgency=medium
+
+  * Team Upload
+
+  [ Pirate Praveen ]
+  * New upstream version 3.0.2+dfsg
+  * New upstream version 3.0.4+dfsg
+  * manually import github tarball 3.0.4
+  * Refresh patch 	modified:
+    debian/patches/0001-Use-packaged-UglifyJS-and-Source-Map.patch
+  * switch to github tarballs
+  * manually import github tarball 3.0.4
+  * remove patches already applied
+  * use source_map instead of sourcemap
+
+  [ Manas Kashyap ]
+  * New upstream version 4.1.20+dfsg
+  * Bump Standards-Version to 4.3.0 (no changes needed)
+  * Bump debhelper compatibility level to 11
+  * Use salsa.debian.org in Vcs-* fields
+
+  [ Utkarsh Gupta ]
+  * Add salsa-ci.yml
+
+  [ Cédric Boutillier ]
+  * Update team name
+  * Add .gitattributes to keep unwanted files out of the source package
+
+  [ Pirate Praveen ]
+  * New upstream version 4.2.0+dfsg
+  * Bump Standards-Version to 4.5.0 (no changes needed)
+  * Drop compat file, rely on debhelper-compat and bump compat level to 13
+  * Refresh patches and disable failing tests
+  * Switch to libjs-uglify-js from libjs-uglify
+  * Replace lib/uglify-harmony.js with terser
+
+ -- Pirate Praveen <praveen@debian.org>  Sun, 13 Sep 2020 13:38:49 +0530
+
 ruby-uglifier (2.7.2+dfsg-2) unstable; urgency=medium
 
   * 0004-Adapt-test-to-UglifyJS-2.7.patch: fix test that was invalidated when
