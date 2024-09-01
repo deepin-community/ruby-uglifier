@@ -1,0 +1,13 @@
+Use packaged version of source map library
+
+--- a/spec/spec_helper.rb
++++ b/spec/spec_helper.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'uglifier'
+ require 'rspec'
+-require 'sourcemap'
++require 'source_map'
+ 
+ # Requires supporting files with custom matchers and macros, etc,
+ # in ./support/ and its subdirectories.

@@ -1,9 +1,9 @@
 Source: ruby-uglifier
 Section: ruby
 Priority: optional
-Maintainer: Debian Ruby Extras Maintainers <pkg-ruby-extras-maintainers@lists.alioth.debian.org>
+Maintainer: Debian Ruby Team <pkg-ruby-extras-maintainers@lists.alioth.debian.org>
 Uploaders: Antonio Terceiro <terceiro@debian.org>
-Build-Depends: debhelper (>= 9~),
+Build-Depends: debhelper-compat (= 13),
                gem2deb,
                rake,
                ruby-execjs (>= 0.3.0),
@@ -11,11 +11,12 @@ Build-Depends: debhelper (>= 9~),
                ruby-rspec,
                ruby-source-map,
                libjs-source-map,
-               libjs-uglify,
+               libjs-uglify-js,
+               libjs-terser,
                ruby-yajl
-Standards-Version: 3.9.8
-Vcs-Git: https://anonscm.debian.org/git/pkg-ruby-extras/ruby-uglifier.git
-Vcs-Browser: https://anonscm.debian.org/cgit/pkg-ruby-extras/ruby-uglifier.git
+Standards-Version: 4.5.0
+Vcs-Git: https://salsa.debian.org/ruby-team/ruby-uglifier.git
+Vcs-Browser: https://salsa.debian.org/ruby-team/ruby-uglifier
 Homepage: http://github.com/lautis/uglifier
 Testsuite: autopkgtest-pkg-ruby
 XS-Ruby-Versions: all
@@ -27,7 +28,8 @@ Depends: ruby | ruby-interpreter,
          ruby-execjs (>= 0.3.0),
          ruby-json (>= 1.8.0),
          libjs-source-map,
-         libjs-uglify,
+         libjs-uglify-js,
+         libjs-terser,
          ${misc:Depends},
          ${shlibs:Depends}
 Description: Ruby wrapper for UglifyJS JavaScript compressor

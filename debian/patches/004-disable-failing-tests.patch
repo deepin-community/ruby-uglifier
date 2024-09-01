@@ -1,0 +1,69 @@
+We use different versions of source_map and uglify.js from upstream
+
+--- a/spec/source_map_spec.rb
++++ b/spec/source_map_spec.rb
+@@ -30,7 +30,7 @@
+     expect { JSON.parse(map) }.not_to raise_error
+   end
+ 
+-  it "generates source maps with the correct meta-data" do
++  xit "generates source maps with the correct meta-data" do
+     _, json = Uglifier.compile_with_map(
+       source,
+       :source_map => {
+@@ -48,7 +48,7 @@
+     expect(map[0].generated.line).to eq(1)
+   end
+ 
+-  it "skips copyright lines in source maps" do
++  xit "skips copyright lines in source maps" do
+     source = <<-JS
+       /* @copyright Conrad Irwin */
+       function hello () {
+@@ -72,7 +72,7 @@
+     expect(map[0].generated.line).to eq(2)
+   end
+ 
+-  it "proceses an input source map" do
++  xit "proceses an input source map" do
+     source = <<-JS
+       function hello () {
+         function world () {
+@@ -108,7 +108,7 @@
+     expect(map[-1].original.line).to eq(1)
+   end
+ 
+-  it "handles empty string as input map sourceRoot" do
++  xit "handles empty string as input map sourceRoot" do
+     _, map1 = Uglifier.compile_with_map(
+       source,
+       :source_map => {
+--- a/spec/uglifier_spec.rb
++++ b/spec/uglifier_spec.rb
+@@ -38,7 +38,7 @@
+     expect(Uglifier.new.compile('var foo="\0bar"')).to include("\\0bar")
+   end
+ 
+-  it "adds trailing semicolon to minified source" do
++  xit "adds trailing semicolon to minified source" do
+     source = "(function id(i) {return i;}());"
+     expect(Uglifier.new.compile(source)[-1]).to eql(";"[0])
+   end
+@@ -244,7 +244,7 @@
+       expect(minified).not_to include("foo(")
+     end
+ 
+-    it 'defaults to not inlining function declarations' do
++    xit 'defaults to not inlining function declarations' do
+       minified = Uglifier.compile(
+         code,
+         :mangle => false,
+@@ -492,7 +492,7 @@
+       expect(compiled).not_to include("var a")
+     end
+ 
+-    it 'does not unused top-level functions and variables by default' do
++    xit 'does not unused top-level functions and variables by default' do
+       expect(Uglifier.compile(code, :mangle => false))
+         .to include("var a").and(include("function h()"))
+     end

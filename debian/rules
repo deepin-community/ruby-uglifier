@@ -1,12 +1,18 @@
 #!/usr/bin/make -f
 
 export GEM2DEB_TEST_RUNNER = --check-dependencies
+export DH_RUBY = --gem-install
 
 %:
 	dh $@ --buildsystem=ruby --with ruby
 
+override_dh_auto_build:
+	ln -s /usr/share/javascript/uglify-js/uglify.js lib/uglify.js
+	ln -s /usr/share/javascript/terser/bundle.min.js lib/uglify-harmony.js
+	dh_auto_build
+
 override_dh_auto_install:
 	dh_auto_install
-	mkdir -p debian/ruby-uglifier/usr/share/javascript/ruby-uglifier/
-	mv debian/ruby-uglifier/usr/lib/ruby/vendor_ruby/es5.js debian/ruby-uglifier/usr/share/javascript/ruby-uglifier/
-	mv debian/ruby-uglifier/usr/lib/ruby/vendor_ruby/split.js debian/ruby-uglifier/usr/share/javascript/ruby-uglifier/
+	# Fix wrong symbolic link
+	ln -sf /usr/share/javascript/uglify-js/uglify.js debian/ruby-uglifier/usr/share/rubygems-integration/all/gems/uglifier-*/lib/uglify.js
+	ln -sf /usr/share/javascript/terser/bundle.min.js debian/ruby-uglifier/usr/share/rubygems-integration/all/gems/uglifier-*/lib/uglify-harmony.js
